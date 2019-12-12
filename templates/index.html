@@ -1,45 +1,62 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
-    <meta name="description" content="MLDemoSystem">
-    <meta name="author" content="ShiveryMoon">
-    <link rel="icon" href="../../favicon.ico">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+		<meta name="description" content="MLDemoSystem">
+		<meta name="author" content="ShiveryMoon">
+		<link rel="icon" href="../../favicon.ico">
 
-    <title>{{ title }}</title>
+		<title>换装展示系统</title>
 
-    <!-- Bootstrap core CSS -->
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+		<!-- Bootstrap core CSS -->
+		<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
 
-    <!-- Custom styles for this template -->
-    <link href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}" rel="stylesheet">
+		<!-- Custom styles for this template -->
+		<link href="{{ url_for('static', filename='css/sticky-footer-navbar.css') }}" rel="stylesheet">
 
-  </head>
-
-  <body>
+	</head>
+	
+	<body>
 
     <!-- Begin page content -->
-    <div class="container">
-      <div class="page-header text-center">
-        <h1>换装展示系统</h1>
-      </div>
-	  <div class="row">
-		<div class="col-md-6 text-center">
-			<img src="{{ url_for('static', filename='pictures/1.jpg') }}" alt="origin pic" class="img-thumbnail" width="400" height="400">
+    <div class="container" id="vm">
+		<div class="page-header text-center">
+			<h1>换装展示系统</h1>
 		</div>
-		<div class="col-md-6 text-center">
-			<img src="{{ url_for('static', filename='pictures/2.jpg') }}" alt="pic after transfer" class="img-thumbnail" width="400" height="400">
+		<div class="row">
+			<div class="col-md-6 text-center">
+				<img :src="url_img1" alt="origin pic" class="img-thumbnail" width="400" height="400">
+			</div>
+			<div class="col-md-6 text-center">
+				<img :src="url_img2" alt="pic after transfer" class="img-thumbnail" width="400" height="400">
+			</div>
 		</div>
-	  </div>
+		<div class="row">
+			<div class="col-md-5" style="margin: 30px 130px">
+				<form @submit='upload($event)'>
+					<div class="form-group">
+						<label for="imgUpload">图片上传</label>
+						<input id="imgUpload" @change='getFile($event)' type="file" accept="image/jpeg,image/gif,image/png">
+						<p class="help-block">${ url_img1 }</p>
+					</div>
+					<button type="submit" class="btn btn-primary">上传</button>
+				<form>
+			</div>  
+			<div class="col-md-3" style="margin: 40px 20px">
+				<button type="button" class="btn btn-primary" @click="selectStyle('123')">裙子</button>
+				<button type="button" class="btn btn-primary" @click="selectStyle('321')">裤子</button>
+				<button type="button" class="btn btn-primary" @click="selectStyle('132')">衬衫</button>
+			</div> 
+		</div>  
     </div>
 
     <footer class="footer">
-      <div class="container">
-        <p class="text-muted">元亦超、夏天宇、袁月航、徐光、余乐章</p>
-      </div>
+		<div class="container">
+			<p class="text-muted">元亦超、夏天宇、袁月航、徐光、余乐章</p>
+		</div>
     </footer>
 
 
@@ -49,5 +66,60 @@
     <script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
     <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
     <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="{{ url_for('static', filename='js/axios.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/vue.js') }}"></script>
+	<script>
+		var vm = new Vue({
+			delimiters: ['${','}'],
+			el: "#vm",
+			data:{
+				img: '',
+				url_img1: '{{ url_for('static', filename='pictures/default.jpg') }}',
+				url_img2: '{{ url_for('static', filename='pictures/default.jpg') }}',
+				style: '',
+			},
+			methods:{
+				getFile: function (event){
+					this.img = event.target.files[0];
+					console.log('getImg success')
+				},
+				upload: function(event){
+					this.url_img1 = '{{ url_for('static', filename='pictures/loading.gif') }}';
+					event.preventDefault();
+					var formData = new FormData();
+					formData.append('img', this.img);
+					axios({
+						method: 'post',
+						url: '/api/upload/',
+						data: formData,
+						headers: {
+							'Content-Type': 'multipart/form-data',
+						}
+					}).then(function (response){
+						//如果图片的url一样，浏览器默认不更新，因此在url中加入随机无意义字符串
+						vm.url_img1 = '{{ url_for('static', filename='pictures/input.jpg') }}' + '?' + Math.floor((Math.random()*1000000));
+						console.log('response from UPLOAD received');
+					}).catch(function (error){
+						console.log(error);
+					})
+				},
+				selectStyle: function (s){
+					this.url_img2 = '{{ url_for('static', filename='pictures/loading.gif') }}';
+					this.style = s;
+					var formData = new FormData();
+					formData.append('style', this.style);
+					axios({
+						method: 'get',
+						url: '/api/style/' + this.style,
+					}).then(function (response) {
+						console.log('response from STYLE received');
+						console.log(response.data)
+					}).catch(function (error){
+						console.log(error);
+					})
+				}
+			}
+		})
+	</script>
   </body>
 </html>
